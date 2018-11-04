@@ -5,6 +5,8 @@ mj-node-cue-sdk
 `node-cue-sdk` is a Node.js addon for loading and and using the Cue SDK in
 pure JavaScript.
 
+This is an update for the node-cue-sdk wrapper orginal created by Yannick de Jong
+
 Added support for iCue SDKv3 - including Lighting Node Pro and Commander Pro.
 Also made other updates to fit my own needs.
 
@@ -12,7 +14,6 @@ I currently dont own any corsair keyboards - so i'm unable to test some function
 
 If Corsair could provide me with a new keyboard or any other RGB accessory I'll be happy to add support for it!
 
-This is an update for the node-cue-sdk wrapper orginal created by Yannick de Jong
 
 ### <a href="https://github.com/Yannicked/node-cue-sdk/wiki/Documentation">Original Documentation</a>
 
@@ -20,7 +21,7 @@ Example with asynchonous functions
 -------
 
 ``` js
-var CueSDK = require('cue-sdk-node');
+var CueSDK = require('mj-cue-sdk-node');
 
 var cue = new CueSDK.CueSDK();
 
@@ -48,7 +49,7 @@ Example with synchonous functions
 -------
 
 ``` js
-var CueSDK = require('cue-sdk-node');
+var CueSDK = require('mj-cue-sdk-node');
 
 var cue = new CueSDK.CueSDK();
 
@@ -74,7 +75,7 @@ Example for DIY-devices - Lighting Node and Commander Pro
 -------
 
 ``` js
-var CueSDK = require('cue-sdk-node-2');
+var CueSDK = require('mj-cue-sdk-node');
 var cue = new CueSDK.CueSDK();
 
 var deviceCount = cue.getCorsairDeviceCount();
