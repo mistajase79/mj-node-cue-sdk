@@ -14,7 +14,7 @@ If Corsair could provide me with a new keyboard or any other RGB accessory I'll 
 
 This is an update for the node-cue-sdk wrapper orginal created by Yannick de Jong
 
-### <a href="https://github.com/Yannicked/node-cue-sdk/wiki/Documentation">Documentation</a>
+### <a href="https://github.com/Yannicked/node-cue-sdk/wiki/Documentation">Original Documentation</a>
 
 Example with asynchonous functions
 -------
