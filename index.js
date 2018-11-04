@@ -110,11 +110,13 @@ var CorsairProtocolDetails = StructType({
 	breakingChanges: ref.types.bool
 });
 
+var count = 0;
+
 /**
 	* A error with the CUE sdk.
 	* @private
 */
-const CueError = (err) => {
+function CueError(err) {
     this.name = "CueError";
     this.message = enums.CorsairError.get(Math.pow(2, err)).key+((err>3&&err!=5)?' -- this might be an error in the CueSDK wrapper, please contact the developer.':'');
 	let error = new Error(this.message);
@@ -138,7 +140,7 @@ class CueSDK {
 		* @param {boolean} [exclusive=false] - If true, enable exclusive mode.
 	*/
 	constructor(clear = false, exclusive = false) {
-		this.CueSDKLib = ffi.Library(path.join(__dirname, 'bin', process.arch, 'CUESDK_2013.dll'), {
+		this.CueSDKLib = ffi.Library(path.join(__dirname, 'lib/bin/', process.arch, 'CUESDK_2015v3.dll'), {
 			'CorsairSetLedsColors': ['bool', ['int', 'pointer']],
 			'CorsairSetLedsColorsAsync': ['bool', ['int', 'pointer', 'pointer', 'pointer']],
 			'CorsairGetDeviceCount': ['int', []],
@@ -147,7 +149,9 @@ class CueSDK {
 			'CorsairGetLedIdForKeyName': [CorsairLedId, ['char']],
 			'CorsairRequestControl': ['bool', [CorsairAccessMode]],
 			'CorsairPerformProtocolHandshake': [CorsairProtocolDetails, []],
-			'CorsairGetLastError': [CorsairError, []]
+			'CorsairSetLayerPriority': ['bool', ['int']],
+			'CorsairGetLastError': [CorsairError, []],
+			'CorsairGetLedPositionsByDeviceIndex': [CorsairLedPositionsPtr, ['int']],
 		});
 
 		this.details = this.CueSDKLib.CorsairPerformProtocolHandshake().toObject();
@@ -181,10 +185,14 @@ class CueSDK {
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
 	set() {
+		count = 0;
 		if (arguments[0] instanceof Array) {
+			//console.log('instanceof Array');
 			if (typeof(arguments[1]) === 'function') {
+			//	console.log('return this.setAsync(...arguments);');
 				return this.setAsync(...arguments);
 			} else {
+			//	console.log('return this.setSync(...arguments);');
 				return this.setSync(...arguments);
 			}
 		} else {
@@ -201,17 +209,20 @@ class CueSDK {
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
 	setSync(a, ids = false) {
+
 		let l = [];
-		if (ids) {
-			for (let i = 0; i<a.length; i++) {
-				l[i] = this._getLedColor(...a[i]).ref();
-			}
-		} else {
-			for (let i = 0; i<a.length; i++) {
-				let [key, r, g, b] = a[i];
+		for (let i = 0; i<a.length; i++) {
+			let [key, r, g, b] = a[i];
+			if(isNaN(key)){
 				l[i] = this._getLedColor(this._getLedIdForKeyName(key), r, g, b).ref();
+			}else{
+				if(key != undefined){
+					l[i] = this._getLedColor(key, r, g, b).ref();
+				}
 			}
+
 		}
+
 		let r = this.CueSDKLib.CorsairSetLedsColors(l.length, Buffer.concat(l));
 		if (r) {
 			return this;
@@ -229,7 +240,15 @@ class CueSDK {
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
 	setIndividualSync(key, r, g, b, ids = false) {
-		let l = this._getLedColor(ids?key:this._getLedIdForKeyName(key), r, g, b).ref();
+
+		let l = null;
+
+		if(isNaN(key)){
+			l = this._getLedColor(ids?key:this._getLedIdForKeyName(key), r, g, b).ref();
+		}else{
+			l = this._getLedColor(key, r, g, b).ref();
+		}
+
 		let re = this.CueSDKLib.CorsairSetLedsColors(1, l);
 		if (re) {
 			return this;
@@ -245,31 +264,38 @@ class CueSDK {
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
 	setAsync(a, callback, ids = false) {
+
 		let l = [];
-		if (ids) {
-			for (let i = 0; i<a.length; i++) {
-				l[i] = this._getLedColor(...a[i]).ref();
-			}
-		} else {
-			for (let i = 0; i<a.length; i++) {
-				let [key, r, g, b] = a[i];
+
+		for (let i = 0; i<a.length; i++) {
+			let [key, r, g, b] = a[i];
+			if(isNaN(key)){
 				l[i] = this._getLedColor(this._getLedIdForKeyName(key), r, g, b).ref();
+			}else{
+				l[i] = this._getLedColor(key, r, g, b).ref();
 			}
 		}
-		let asyncFunc = ffi.Callback('void', ['pointer', 'bool', CorsairError], (context, succes, error) => {
-			if (succes) {
+		
+
+		let asyncFunc = ffi.Callback('void', ['pointer', 'bool', CorsairError], (context, success, error) => {
+			if (success) {
 				callback();
 			} else {
 				this._error();
 			}
 		});
+
+
 		let re = this.CueSDKLib.CorsairSetLedsColorsAsync(l.length, Buffer.concat(l), asyncFunc, ref.NULL);
 		if (re) {
 			return asyncFunc;
+
 		} else {
 			this._error();
 			return asyncFunc;
+
 		}
+
 	}
 	/**
 		* Set an individual led colors synchronously.
@@ -281,7 +307,15 @@ class CueSDK {
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
 	setIndividualAsync(key, r, g, b, callback, ids = false) {
-		let l = this._getLedColor(ids?key:this._getLedIdForKeyName(key), r, g, b).ref();
+
+		let l = null;
+
+		if(isNaN(key) && key != undefined){
+			l = this._getLedColor(ids?key:this._getLedIdForKeyName(key), r, g, b).ref();
+		}else{
+			l = this._getLedColor(key, r, g, b).ref();
+		}
+
 		let asyncFunc = ffi.Callback('void', ['pointer', 'bool', CorsairError], (context, succes, error) => {
 			if (succes) {
 				callback();
@@ -289,6 +323,7 @@ class CueSDK {
 				this._error();
 			}
 		});
+
 		let re = this.CueSDKLib.CorsairSetLedsColorsAsync(1, l, asyncFunc, ref.NULL);
 		if (re) {
 			return asyncFunc;
@@ -319,6 +354,14 @@ class CueSDK {
 			return this.fadeIndividualAsync(...arguments);
 		}
 	}
+
+	fadeSingleColour() {
+		if (arguments[0] instanceof Array) {
+			return this.fadeSingleAsync(...arguments);
+		} else {
+			return this.fadeIndividualAsync(...arguments);
+		}
+	}
 	/**
 		* Fade multiple or individual leds.
 		* @param {number[]} k - Key or arrray of keys to be faded.
@@ -328,7 +371,19 @@ class CueSDK {
 		* @param {fadeCallback} cb - The callback ran after completing the asynchonous request.
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
+	fadeSingleAsync(k, f, t, l, cb = () => {}, ids = false) {
+		this.fadeType = "RGB";
+		this.fade_helper[this.fadeType](f, t, l, this.fps, (r, g, b) => {
+			let a = [];
+			for (let i = 0; i<k.length; i++) {
+				a.push([k[i], r, g, b]);
+			}
+			this.setAsync(a, cb, ids);
+		});
+	}
+
 	fadeAsync(k, f, t, l, cb = () => {}, ids = false) {
+		this.fadeType = 'Wheel';
 		this.fade_helper[this.fadeType](f, t, l, this.fps, (r, g, b) => {
 			let a = [];
 			for (let i = 0; i<k.length; i++) {
@@ -346,7 +401,7 @@ class CueSDK {
 		* @param {fadeCallback} cb - The callback ran after completing the asynchonous request.
 		* @param {boolean} [ids=false] - If true, use the key ids as-is.
 	*/
-	fadeIndividualAsync(k, f, t, l, cb = () => {}, ids = false) { // k = array of leds, f = from color, t = to color [r, g, b], l = time in ms
+	fadeIndividualAsync( k, f, t, l, cb = () => {}, ids = false) { // k = array of leds, f = from color, t = to color [r, g, b], l = time in ms
 		this.fade_helper[this.fadeType](f, t, l, this.fps, (r, g, b) => {
 			this.setIndividualAsync(k, r, g, b, (r == t[0] && g == t[1] && b == t[2])?cb:(() => {}), ids);
 		});
@@ -361,6 +416,17 @@ class CueSDK {
 		}
 		this.set(l, true);
 	}
+	clearAll(ids) {
+		let l = [];
+		for (let i = 0; i<=ids.length; i++) {
+			var tl = ids[i]
+			if(tl != undefined){
+				l.push([tl, 0, 0, 0]);
+			}
+		}
+
+		this.set(l, true);
+	}
 	/**
 		* Get the leds as reported by the CueSDK
 		* @return {CorsairLedPosition[]} l - An array containing the led's positions as reported by the sdk.
@@ -371,6 +437,23 @@ class CueSDK {
 		l.length = p['numberOfLeds'];
 		return l;
 	}
+
+	getCorsairPositionsByDeviceIndex(typeId) {
+		let p = this.CueSDKLib.CorsairGetLedPositionsByDeviceIndex(typeId).deref();
+		let l = p['pLedPosition'];
+		l.length = p['numberOfLeds'];
+		return l;
+	}
+
+	getCorsairDeviceType(typeId){
+		let p = this.CueSDKLib.CorsairGetDeviceInfo(typeId).deref();
+		return p
+	}
+
+	getCorsairDeviceCount(){
+		let p = this.CueSDKLib.CorsairGetDeviceCount();
+		return p;
+	}
 	/**
 		* Close the connection with the SDK and release all keys.
 	*/
@@ -378,6 +461,21 @@ class CueSDK {
 		this.CueSDKLib._dl.close();
 		this.CueSDKLib = {};
 	}
+
+	/** 
+	 * Renew the keyboard by assigning a normal priority. http://forum.corsair.com/v3/showthread.php?t=153701
+	*/
+	renew() {
+		this.CueSDKLib.CorsairSetLayerPriority(127);
+	}
+
+	/** 
+	 * Release the keyboard by setting a low priority. http://forum.corsair.com/v3/showthread.php?t=153701
+	*/
+	release() {
+		this.CueSDKLib.CorsairSetLayerPriority(120);
+	}
+
 	/**
 		* Create a CorsairLedColor.
 		* @private
