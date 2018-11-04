@@ -1,4 +1,4 @@
-node-cue-sdk
+mj-node-cue-sdk
 ========
 ***
 ### Node.js Corsair Cue SDK wrapper
@@ -123,5 +123,5 @@ tools](https://github.com/TooTallNate/node-gyp#installation),
 then run this command in the source directory:
 
 ``` bash
-$ npm install cue-sdk-node
+$ npm install mj-cue-sdk-node
 ```
