@@ -5,6 +5,15 @@ node-cue-sdk
 `node-cue-sdk` is a Node.js addon for loading and and using the Cue SDK in
 pure JavaScript.
 
+Added support for iCue SDKv3 - including Lighting Node Pro and Commander Pro.
+Also made other updates to fit my own needs.
+
+I currently dont own any corsair keyboards - so i'm unable to test some functionality - however everything i needed works ( so now i can play CS:GO with reactive RGB lighting! ) 
+
+If Corsair could provide me with a new keyboard or any other RGB accessory I'll be happy to add support for it!
+
+This is an update for the node-cue-sdk wrapper orginal created by Yannick de Jong
+
 ### <a href="https://github.com/Yannicked/node-cue-sdk/wiki/Documentation">Documentation</a>
 
 Example with asynchonous functions
@@ -57,6 +66,46 @@ cue.set('Logo', 255, 255, 0); // Make the Corsair logo yellow
 
 // To turn off all leds
 cue.clear();
+
+```
+
+***
+Example for DIY-devices - Lighting Node and Commander Pro
+-------
+
+``` js
+var CueSDK = require('cue-sdk-node-2');
+var cue = new CueSDK.CueSDK();
+
+var deviceCount = cue.getCorsairDeviceCount();
+console.log('deviceCount = '+deviceCount);
+
+var ledIdsArray = [];
+
+//loop through devices
+for (i = 0; i<deviceCount; i++) {
+  var deviceCheck = cue.getCorsairDeviceType(i);
+  console.log(deviceCheck.model);
+
+  if(deviceCheck.model == 'Lighting Node Pro'){
+    var leds = cue.getCorsairPositionsByDeviceIndex(i);
+    for (var i in leds) {
+      if(leds[i].ledId != undefined){
+        ledIdsArray.push(leds[i].ledId);
+      }
+    }
+  }
+  if(deviceCheck.model == 'Commander Pro'){
+    var leds = cue.getCorsairPositionsByDeviceIndex(i);
+    for (var i in leds) {
+      if(leds[i].ledId != undefined){
+        ledIdsArray.push(leds[i].ledId);
+      }
+    }
+  }
+}
+
+cue.fadeSingleColour(ledIdsArray, [255, 0, 0], [0, 0, 0], 3000);
 
 ```
 
