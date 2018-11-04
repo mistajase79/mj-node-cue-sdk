@@ -1,12 +1,12 @@
 {
   "name": "mj-cue-sdk-node",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Corsair Cue SDK wrapper for node.js",
   "main": "index.js",
   "author": "Orginal Author: Yannick de Jong",
   "license": "ISC",
-  "engines" : { 
-	"node" : ">=6.0.0"
+  "engines": {
+    "node": ">=6.0.0"
   },
   "dependencies": {
     "enum": "^2.2.0",
